@@ -1,4 +1,4 @@
-import boto3, logging, os
+import boto3, logging, os, io
 from botocore.exceptions import ClientError
 from io import BufferedReader
 
@@ -83,6 +83,16 @@ class S3Handler:
             logging.error(e)
             return False, None
 
+    def download_object(self, bucket_name:str, object_key:str):
+        try:
+            buffer = io.BytesIO()
+            self.client.download_fileobj(bucket_name, object_key, buffer)
+            buffer.seek(0)  # Reset the pointer to the beginning
+            return True, buffer
+        except Exception as e:
+            logging.error(e)
+            return False, None
+
     def get_presigned_download_url(self, s3_object_url:str, expiration:int):
         ...
 
@@ -108,4 +118,8 @@ if __name__ == '__main__':
     delete_success, response = handler.delete_object(bucket_name="testbucket", object_key="binary_read_file.json")
     print("Delete status: ", delete_success)
     print("Delete response: ", response)
+    download_success, file_byte = handler.download_object(bucket_name='testbucket', object_key='s3_config.json')
+    print("Download status: ", download_success)
+    with open('downloaded_file.json', 'wb') as f:
+        f.write(file_byte.read())
     print(handler.get_buckets())
