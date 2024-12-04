@@ -93,8 +93,20 @@ class S3Handler:
             logging.error(e)
             return False, None
 
-    def get_presigned_download_url(self, s3_object_url:str, expiration:int):
-        ...
+    def get_presigned_download_url(self, bucket_name:str, object_name:str, expiration:int = 3600):
+        try:
+            response = self.client.generate_presigned_url(ClientMethod='get_object',
+                                                        Params={
+                                                            'Bucket':bucket_name,
+                                                            'Key': object_name
+                                                        },
+                                                        ExpiresIn=expiration)
+        except ClientError as e:
+            logging.error(e)
+            return None
+
+        # The response contains the presigned URL
+        return response
 
     def get_presigned_upload_url(self, bucket_name:str, object_name:str, expiration:int = 3600):
         try:
@@ -136,7 +148,10 @@ if __name__ == '__main__':
     with open('downloaded_file.json', 'wb') as f:
         f.write(file_byte.read())
 
+    presigned_download_response = handler.get_presigned_download_url(bucket_name='testbucket', object_name='s3_config.json', expiration=60)
+    print("Presigned download URL response: ", presigned_download_response)
+
     presigned_upload_response = handler.get_presigned_upload_url(bucket_name='testbucket', object_name='presigned_upload.json')
-    print("Presigned Upload URL Response: ", presigned_upload_response)
+    print("Presigned upload URL response: ", presigned_upload_response)
 
     print(handler.get_buckets())
