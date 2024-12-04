@@ -1,5 +1,6 @@
 import boto3, logging, os
 from botocore.exceptions import ClientError
+from io import BufferedReader
 
 class S3Handler:
     def __init__(self, s3_url:str, access_key:str, secret_key:str):
@@ -58,6 +59,20 @@ class S3Handler:
         except ClientError as e:
             logging.error(e)
             return False
+        return True, response
+
+    def upload_file_binary(self, buffer:BufferedReader, bucket_name:str, object_name=None):
+        # If S3 object_name was not specified, use the file name that is obtained from the buffereader
+        if object_name is None:
+            object_name = os.path.basename(buffer.name)
+
+        # Upload the file
+        try: 
+            self.client.upload_fileobj(buffer, bucket_name, object_name)
+            response = f's3://{bucket_name}/{object_name}'
+        except ClientError as e:
+            logging.error(e)
+            return False
         return True, response   
 
     def get_presigned_download_url(self, s3_object_url:str, expiration:int):
@@ -78,4 +93,10 @@ if __name__ == '__main__':
     success, response = handler.upload_file(path_to_file='./s3_config.json', bucket_name='testbucket')
     print("Upload status: ", success)
     print("Upload response: ", response)
+    with open('s3_config.json', 'rb') as file:
+        success, response = handler.upload_file_binary(buffer=file, bucket_name='testbucket', object_name='binary_read_file.json')
+        print("Upload status: ", success)
+        print("Upload response: ", response)
+
     print(handler.get_buckets())
+
