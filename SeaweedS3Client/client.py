@@ -1,4 +1,4 @@
-import boto3, logging
+import boto3, logging, os
 from botocore.exceptions import ClientError
 
 class S3Handler:
@@ -46,6 +46,20 @@ class S3Handler:
             logging.error(e)
             return True
     
+    def upload_file(self, path_to_file:str, bucket_name:str, object_name=None):
+        # If S3 object_name was not specified, use file_name from the path specified
+        if object_name is None:
+            object_name = os.path.basename(path_to_file)
+
+        # Upload the file
+        try: 
+            self.client.upload_file(path_to_file, bucket_name, object_name)
+            response = f's3://{bucket_name}/{object_name}'
+        except ClientError as e:
+            logging.error(e)
+            return False
+        return True, response   
+
     def get_presigned_download_url(self, s3_object_url:str, expiration:int):
         ...
 
@@ -61,5 +75,7 @@ if __name__ == '__main__':
 
     print(handler.create_bucket(name='testbucket'))
     print(handler.get_buckets())
-    print(handler.delete_bucket(name='testbucket'))
+    success, response = handler.upload_file(path_to_file='./s3_config.json', bucket_name='testbucket')
+    print("Upload status: ", success)
+    print("Upload response: ", response)
     print(handler.get_buckets())
