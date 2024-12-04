@@ -75,18 +75,18 @@ class S3Handler:
             return False, None
         return True, response   
 
-    def delete_object(self, bucket_name:str, object_key:str):
+    def delete_object(self, bucket_name:str, object_name:str):
         try:
-            response = self.client.delete_object(Bucket=bucket_name, Key=object_key)
+            response = self.client.delete_object(Bucket=bucket_name, Key=object_name)
             return True, response
         except Exception as e:
             logging.error(e)
             return False, None
 
-    def download_object(self, bucket_name:str, object_key:str):
+    def download_object(self, bucket_name:str, object_name:str):
         try:
             buffer = io.BytesIO()
-            self.client.download_fileobj(bucket_name, object_key, buffer)
+            self.client.download_fileobj(bucket_name, object_name, buffer)
             buffer.seek(0)  # Reset the pointer to the beginning
             return True, buffer
         except Exception as e:
@@ -96,8 +96,17 @@ class S3Handler:
     def get_presigned_download_url(self, s3_object_url:str, expiration:int):
         ...
 
-    def get_presigned_upload_url(self, bucket_name:str):
-        ...
+    def get_presigned_upload_url(self, bucket_name:str, object_name:str, expiration:int = 3600):
+        try:
+            response = self.client.generate_presigned_post(bucket_name,
+                                                         object_name,
+                                                         ExpiresIn=expiration)
+        except ClientError as e:
+            logging.error(e)
+            return None
+
+        # The response contains the presigned URL and required fields
+        return response
 
 if __name__ == '__main__':
     handler = S3Handler(
@@ -108,18 +117,26 @@ if __name__ == '__main__':
 
     print(handler.create_bucket(name='testbucket'))
     print(handler.get_buckets())
+    
     success, response = handler.upload_file(path_to_file='./s3_config.json', bucket_name='testbucket')
     print("Upload status: ", success)
     print("Upload response: ", response)
+    
     with open('s3_config.json', 'rb') as file:
         success, response = handler.upload_file_binary(buffer=file, bucket_name='testbucket', object_name='binary_read_file.json')
         print("Upload status: ", success)
         print("Upload response: ", response)
-    delete_success, response = handler.delete_object(bucket_name="testbucket", object_key="binary_read_file.json")
+    
+    delete_success, response = handler.delete_object(bucket_name="testbucket", object_name="binary_read_file.json")
     print("Delete status: ", delete_success)
     print("Delete response: ", response)
-    download_success, file_byte = handler.download_object(bucket_name='testbucket', object_key='s3_config.json')
+    
+    download_success, file_byte = handler.download_object(bucket_name='testbucket', object_name='s3_config.json')
     print("Download status: ", download_success)
     with open('downloaded_file.json', 'wb') as f:
         f.write(file_byte.read())
+
+    presigned_upload_response = handler.get_presigned_upload_url(bucket_name='testbucket', object_name='presigned_upload.json')
+    print("Presigned Upload URL Response: ", presigned_upload_response)
+
     print(handler.get_buckets())
