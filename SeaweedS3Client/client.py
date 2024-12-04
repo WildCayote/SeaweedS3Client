@@ -19,7 +19,10 @@ class S3Handler:
         return client
 
     def get_buckets(self):
-        ...
+        response = self.client.list_buckets()
+        buckets = response['Buckets']
+
+        return buckets
 
     def create_bucket(self, name:str):
         ...
@@ -33,3 +36,11 @@ class S3Handler:
     def get_presigned_upload_url(self, bucket_name:str):
         ...
 
+if __name__ == '__main__':
+    handler = S3Handler(
+        s3_url="http://localhost:3333",
+        access_key="any",
+        secret_key="any"
+    )
+
+    print(handler.get_buckets())
