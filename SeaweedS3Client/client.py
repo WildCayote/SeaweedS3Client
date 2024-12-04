@@ -1,4 +1,5 @@
-import boto3
+import boto3, logging
+from botocore.exceptions import ClientError
 
 class S3Handler:
     def __init__(self, s3_url:str, access_key:str, secret_key:str):
@@ -24,8 +25,20 @@ class S3Handler:
 
         return buckets
 
-    def create_bucket(self, name:str):
-        ...
+    def create_bucket(self, name:str, region:str=None):
+        try:
+            if region is None:
+                s3_client = boto3.client('s3')
+                s3_client.create_bucket(Bucket=name)
+            else:
+                s3_client = boto3.client('s3', region_name=region)
+                location = {'LocationConstraint': region}
+                s3_client.create_bucket(Bucket=name,
+                                        CreateBucketConfiguration=location)
+        except ClientError as e:
+            logging.error(e)
+            return False
+        return True
     
     def delete_bucket(self, name:str):
         ...
@@ -42,5 +55,5 @@ if __name__ == '__main__':
         access_key="any",
         secret_key="any"
     )
-
+    
     print(handler.get_buckets())
