@@ -28,12 +28,10 @@ class S3Handler:
     def create_bucket(self, name:str, region:str=None):
         try:
             if region is None:
-                s3_client = boto3.client('s3')
-                s3_client.create_bucket(Bucket=name)
+                self.client.create_bucket(Bucket=name)
             else:
-                s3_client = boto3.client('s3', region_name=region)
                 location = {'LocationConstraint': region}
-                s3_client.create_bucket(Bucket=name,
+                self.client.create_bucket(Bucket=name,
                                         CreateBucketConfiguration=location)
         except ClientError as e:
             logging.error(e)
@@ -41,7 +39,12 @@ class S3Handler:
         return True
     
     def delete_bucket(self, name:str):
-        ...
+        try:
+            self.client.delete_bucket(Bucket=name)
+            return True
+        except Exception as e:
+            logging.error(e)
+            return True
     
     def get_presigned_download_url(self, s3_object_url:str, expiration:int):
         ...
@@ -55,5 +58,8 @@ if __name__ == '__main__':
         access_key="any",
         secret_key="any"
     )
-    
+
+    print(handler.create_bucket(name='testbucket'))
+    print(handler.get_buckets())
+    print(handler.delete_bucket(name='testbucket'))
     print(handler.get_buckets())
