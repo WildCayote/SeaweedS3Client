@@ -58,7 +58,7 @@ class S3Handler:
             response = f's3://{bucket_name}/{object_name}'
         except ClientError as e:
             logging.error(e)
-            return False
+            return False, None
         return True, response
 
     def upload_file_binary(self, buffer:BufferedReader, bucket_name:str, object_name=None):
@@ -72,8 +72,16 @@ class S3Handler:
             response = f's3://{bucket_name}/{object_name}'
         except ClientError as e:
             logging.error(e)
-            return False
+            return False, None
         return True, response   
+
+    def delete_object(self, bucket_name:str, object_key:str):
+        try:
+            response = self.client.delete_object(Bucket=bucket_name, Key=object_key)
+            return True, response
+        except Exception as e:
+            logging.error(e)
+            return False, None
 
     def get_presigned_download_url(self, s3_object_url:str, expiration:int):
         ...
@@ -97,6 +105,7 @@ if __name__ == '__main__':
         success, response = handler.upload_file_binary(buffer=file, bucket_name='testbucket', object_name='binary_read_file.json')
         print("Upload status: ", success)
         print("Upload response: ", response)
-
+    delete_success, response = handler.delete_object(bucket_name="testbucket", object_key="binary_read_file.json")
+    print("Delete status: ", delete_success)
+    print("Delete response: ", response)
     print(handler.get_buckets())
-
